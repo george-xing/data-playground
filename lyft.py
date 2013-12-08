@@ -275,8 +275,17 @@ def plot_data(results):
 	plt.figure()
 	plt.hist(results['by_day']['num_rides'], bins=[0, 1, 2, 3, 4, 5], normed=True, alpha=0.4)
 
+	# distribution of rides by price
+	plt.figure()
+	plt.title('Rides by Price')
+	plt.xlabel('Price (dollars)')
+	plt.ylabel('Number of Rides')
+	plt.hist(results['by_record']['price'], alpha=0.4)
+	plt.savefig('./by_price.png')
+
 	# distribution of rides by day of week
 	plt.figure()
+	plt.title('Rides by Day of Week')
 	days_of_week = map(int, results['by_day_of_week']['day_of_week'])
 	plt.bar(days_of_week, results['by_day_of_week']['num_rides'], align='center', alpha=0.4)
 	plt.xlabel('Day of Week')
@@ -286,6 +295,7 @@ def plot_data(results):
 
 	# distribution of rides by hour
 	plt.figure()
+	plt.title('Rides by Hour')
 	hours = map(int, results['by_hour']['hour'])
 	plt.bar(hours, results['by_hour']['num_rides'], align='center', alpha=0.4)
 	plt.xlabel('Hour')
@@ -294,8 +304,13 @@ def plot_data(results):
 	plt.savefig('./by_hour.png')
 
 	# price as function of distance
+	x = results['by_record']['distance'] / 1600.0
+	y = results['by_record']['price']
+	fit = np.polyfit(x, y, 1)
+	fit_fn = np.poly1d(fit)
 	plt.figure()
-	plt.scatter(results['by_record']['distance'] / 1600.0, results['by_record']['price'], alpha=0.4)
+	plt.title('Price vs. Distance')
+	plt.plot(x, y, 'bo', x, fit_fn(x), '-k', alpha=0.4)
 	plt.xlabel('Distance (miles)')
 	plt.ylabel('Price (dollars)')
 	plt.xlim(0, 25)
