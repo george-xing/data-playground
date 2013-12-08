@@ -238,19 +238,23 @@ def run_queries(conn):
 	results["totals"] = r
 
 	# aggregates by month
-	c.execute("SELECT STRFTIME('%Y-%m', time) AS MONTH, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides GROUP BY MONTH;")
+	c.execute("SELECT STRFTIME('%Y-%m', time) AS MONTH, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides WHERE distance != 0 GROUP BY MONTH;")
 	results['by_month'] = np.array(c.fetchall(), dtype=[('month', np.str_, 16), ('num_rides', int), ('total_distance', int), ('total_cost', int), ('avg_cost', float), ('avg_distance', float), ('dollars_per_meter', float)])
 
+	# aggregates by month, distance filtered
+	c.execute("SELECT STRFTIME('%Y-%m', time) AS MONTH, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides WHERE (distance / 1600.0) BETWEEN 1 AND 5 GROUP BY MONTH;")
+	results['by_month_filtered'] = np.array(c.fetchall(), dtype=[('month', np.str_, 16), ('num_rides', int), ('total_distance', int), ('total_cost', int), ('avg_cost', float), ('avg_distance', float), ('dollars_per_meter', float)])
+
 	# aggregates by day
-	c.execute("SELECT STRFTIME('%Y-%m-%d', time) AS DAY, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides GROUP BY DAY;")
+	c.execute("SELECT STRFTIME('%Y-%m-%d', time) AS DAY, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides WHERE distance != 0  GROUP BY DAY;")
 	results['by_day'] = np.array(c.fetchall(), dtype=[('day', np.str_, 16), ('num_rides', int), ('total_distance', int), ('total_cost', int), ('avg_cost', float), ('avg_distance', float), ('dollars_per_meter', float)])
 
 	# aggregates by hour
-	c.execute("SELECT STRFTIME('%H', time) AS HOUR, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides GROUP BY HOUR;")
+	c.execute("SELECT STRFTIME('%H', time) AS HOUR, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides WHERE distance != 0 GROUP BY HOUR;")
 	results["by_hour"] = np.array(c.fetchall(), dtype=[('hour', np.str_, 16), ('num_rides', int), ('total_distance', int), ('total_cost', int), ('avg_cost', float), ('avg_distance', float), ('dollars_per_meter', float)])
 
 	# aggregates by day of week
-	c.execute("SELECT STRFTIME('%w', time) AS DAY_OF_WEEK, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides GROUP BY DAY_OF_WEEK;")
+	c.execute("SELECT STRFTIME('%w', time) AS DAY_OF_WEEK, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides WHERE distance != 0 GROUP BY DAY_OF_WEEK;")
 	results['by_day_of_week'] = np.array(c.fetchall(), dtype=[('day_of_week', np.str_, 16), ('num_rides', int), ('total_distance', int), ('total_cost', int), ('avg_cost', float), ('avg_distance', float), ('dollars_per_meter', float)])
 
 	# entire table (by record), excluding where distances = 0
@@ -262,7 +266,7 @@ def run_queries(conn):
 def plot_data(results):
 	# by month
 	fig = plt.figure()
-	plt.title('Lyft Rides by Month')
+	plt.title('Rides by Month')
 	plt.xlabel('Month')
 	plt.ylabel('Number of Rides')
 	ax = fig.add_subplot(1, 1, 1)
@@ -315,6 +319,18 @@ def plot_data(results):
 	plt.ylabel('Price (dollars)')
 	plt.xlim(0, 25)
 	plt.savefig('./price_by_distance.png')
+
+	# dollars per mile by month
+	fig = plt.figure()
+	plt.title('Dollars per Mile by Month')
+	plt.xlabel('Month')
+	plt.ylabel('dollars per mile')
+	ax = fig.add_subplot(1, 1, 1)
+	ax.xaxis_date()
+	plt.plot([datetime.strptime(d, '%Y-%m') for d in results['by_month_filtered']['month']], 1600.0 * results['by_month_filtered']['dollars_per_meter'], alpha=0.4)
+	plt.xticks(rotation=50)
+	plt.ylim(0, 7)
+	plt.savefig('./dollars_per_mile_by_month.png')
 
 	return plt
 
