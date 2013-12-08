@@ -98,7 +98,7 @@ class Receipt:
 			Example 3: "Lyft ride charges:"
 		'''
 
-		case1 = re.search('Donation( given)? to ([\.\s\w]+): \$(\d+\.\d+)(Lyft Credits applied:)? Card ending with', self.sanitized_text())
+		case1 = re.search('Donation( given)? to ([\.\s\w]+): \$(\d+\.\d+)( Lyft Credits applied:\s\-\s\$\d+\.\d+)? Card ending with', self.sanitized_text())
 		case2 = re.search('Lyft ride charges: \$(.*)(Card ending with|Lyft Credits)', self.sanitized_text())
 		case3 = re.search('Donation: \$(.*) Total', self.sanitized_text())
 
@@ -265,6 +265,7 @@ def plot_data(results):
 	plt.xlabel('Month')
 	plt.ylabel('Number of Rides')
 	plt.plot_date([datetime.strptime(d, '%Y-%m') for d in results['by_month']['month']], results['by_month']['num_rides'], alpha=0.4)
+	plt.savefig('./by_month.png')
 
 	# distribution of days by number rides
 	plt.figure()
@@ -277,6 +278,7 @@ def plot_data(results):
 	plt.xlabel('Day of Week')
 	plt.ylabel('Number of Rides')
 	plt.xticks(days_of_week, ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
+	plt.savefig('./by_day_of_week.png')
 
 	# distribution of rides by hour
 	plt.figure()
@@ -285,13 +287,15 @@ def plot_data(results):
 	plt.xlabel('Hour')
 	plt.ylabel('Number of Rides')
 	plt.xlim(0, 23)
-	
+	plt.savefig('./by_hour.png')
+
 	# price as function of distance
 	plt.figure()
 	plt.scatter(results['by_record']['distance'] / 1600.0, results['by_record']['price'], alpha=0.4)
 	plt.xlabel('Distance (miles)')
 	plt.ylabel('Price (dollars)')
 	plt.xlim(0, 25)
+	plt.savefig('./price_by_distance.png')
 
 	return plt
 
