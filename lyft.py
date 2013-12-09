@@ -272,8 +272,14 @@ def plot_data(results):
 	plt.savefig('./by_month.png')
 
 	# distribution of days by number rides
+	bins = np.array([1, 2, 3, 4, 5])
 	plt.figure()
-	plt.hist(results['by_day']['num_rides'], bins=[0, 1, 2, 3, 4], align='mid', normed=True, alpha=0.4)
+	plt.figure('Days by number of rides')
+	plt.xlabel('Number of rides on a given day')
+	plt.ylabel('Percent of rides')
+	plt.hist(results['by_day']['num_rides'], bins=bins, normed=True, align='mid', alpha=0.4)
+	plt.xticks(bins + 0.5, np.arange(min(results['by_day']['num_rides']), max(results['by_day']['num_rides']) + 1))
+	plt.savefig('./by_number_of_rides.png')
 
 	# distribution of rides by price
 	plt.figure()
