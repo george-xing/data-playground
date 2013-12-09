@@ -238,19 +238,19 @@ def run_queries(conn):
 	results["totals"] = r
 
 	# aggregates by month
-	c.execute("SELECT STRFTIME('%Y-%m', time) AS MONTH, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides WHERE distance != 0 GROUP BY MONTH;")
+	c.execute("SELECT STRFTIME('%Y-%m', time) AS MONTH, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides GROUP BY MONTH;")
 	results['by_month'] = np.array(c.fetchall(), dtype=[('month', np.str_, 16), ('num_rides', int), ('total_distance', int), ('total_cost', int), ('avg_cost', float), ('avg_distance', float), ('dollars_per_meter', float)])
 
 	# aggregates by day
-	c.execute("SELECT STRFTIME('%Y-%m-%d', time) AS DAY, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides WHERE distance != 0  GROUP BY DAY;")
+	c.execute("SELECT STRFTIME('%Y-%m-%d', time) AS DAY, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides GROUP BY DAY;")
 	results['by_day'] = np.array(c.fetchall(), dtype=[('day', np.str_, 16), ('num_rides', int), ('total_distance', int), ('total_cost', int), ('avg_cost', float), ('avg_distance', float), ('dollars_per_meter', float)])
 
 	# aggregates by hour
-	c.execute("SELECT STRFTIME('%H', time) AS HOUR, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides WHERE distance != 0 GROUP BY HOUR;")
+	c.execute("SELECT STRFTIME('%H', time) AS HOUR, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides GROUP BY HOUR;")
 	results["by_hour"] = np.array(c.fetchall(), dtype=[('hour', np.str_, 16), ('num_rides', int), ('total_distance', int), ('total_cost', int), ('avg_cost', float), ('avg_distance', float), ('dollars_per_meter', float)])
 
 	# aggregates by day of week
-	c.execute("SELECT STRFTIME('%w', time) AS DAY_OF_WEEK, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides WHERE distance != 0 GROUP BY DAY_OF_WEEK;")
+	c.execute("SELECT STRFTIME('%w', time) AS DAY_OF_WEEK, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides GROUP BY DAY_OF_WEEK;")
 	results['by_day_of_week'] = np.array(c.fetchall(), dtype=[('day_of_week', np.str_, 16), ('num_rides', int), ('total_distance', int), ('total_cost', int), ('avg_cost', float), ('avg_distance', float), ('dollars_per_meter', float)])
 
 	# entire table (by record), excluding where distances = 0
@@ -269,24 +269,27 @@ def plot_data(results):
 	ax.xaxis_date()
 	plt.bar([datetime.strptime(d, '%Y-%m') for d in results['by_month']['month']], results['by_month']['num_rides'], alpha=0.4, width=25)
 	plt.xticks(rotation=50)
+
 	plt.savefig('./by_month.png')
 
 	# distribution of days by number rides
 	bins = np.array([1, 2, 3, 4, 5])
 	plt.figure()
-	plt.figure('Days by number of rides')
+	plt.title('Days by number of rides')
 	plt.xlabel('Number of rides on a given day')
 	plt.ylabel('Percent of rides')
-	plt.hist(results['by_day']['num_rides'], bins=bins, normed=True, align='mid', alpha=0.4)
-	plt.xticks(bins + 0.5, np.arange(min(results['by_day']['num_rides']), max(results['by_day']['num_rides']) + 1))
+	plt.hist(results['by_day']['num_rides'], bins=bins, normed=True, align='mid', alpha=0.4, width=0.5)
+	plt.xticks(bins + 0.25, np.arange(min(results['by_day']['num_rides']), max(results['by_day']['num_rides']) + 1))
 	plt.savefig('./by_number_of_rides.png')
 
 	# distribution of rides by price
+	bins = np.array([5, 10, 15, 20, 25, 30, 35, 40])
 	plt.figure()
 	plt.title('Rides by Price')
 	plt.xlabel('Price (dollars)')
 	plt.ylabel('Number of Rides')
-	plt.hist(results['by_record']['price'], align='mid', alpha=0.4)
+	plt.hist(results['by_record']['price'], bins=bins, align='mid', alpha=0.4, width=4)
+	plt.xticks(bins - 0.5, bins)
 	plt.savefig('./by_price.png')
 
 	# distribution of rides by day of week
