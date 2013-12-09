@@ -241,10 +241,6 @@ def run_queries(conn):
 	c.execute("SELECT STRFTIME('%Y-%m', time) AS MONTH, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides WHERE distance != 0 GROUP BY MONTH;")
 	results['by_month'] = np.array(c.fetchall(), dtype=[('month', np.str_, 16), ('num_rides', int), ('total_distance', int), ('total_cost', int), ('avg_cost', float), ('avg_distance', float), ('dollars_per_meter', float)])
 
-	# aggregates by month, distance filtered
-	c.execute("SELECT STRFTIME('%Y-%m', time) AS MONTH, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides WHERE (distance / 1600.0) BETWEEN 1 AND 5 GROUP BY MONTH;")
-	results['by_month_filtered'] = np.array(c.fetchall(), dtype=[('month', np.str_, 16), ('num_rides', int), ('total_distance', int), ('total_cost', int), ('avg_cost', float), ('avg_distance', float), ('dollars_per_meter', float)])
-
 	# aggregates by day
 	c.execute("SELECT STRFTIME('%Y-%m-%d', time) AS DAY, COUNT(*), SUM(distance), SUM(price), AVG(price), AVG(distance), 1.0 * SUM(price)/SUM(distance) FROM rides WHERE distance != 0  GROUP BY DAY;")
 	results['by_day'] = np.array(c.fetchall(), dtype=[('day', np.str_, 16), ('num_rides', int), ('total_distance', int), ('total_cost', int), ('avg_cost', float), ('avg_distance', float), ('dollars_per_meter', float)])
@@ -265,7 +261,7 @@ def run_queries(conn):
 
 def plot_data(results):
 	# by month
-	fig = plt.figure()
+	fig = plt.figure(figsize=(8, 8))
 	plt.title('Rides by Month')
 	plt.xlabel('Month')
 	plt.ylabel('Number of Rides')
@@ -277,18 +273,18 @@ def plot_data(results):
 
 	# distribution of days by number rides
 	plt.figure()
-	plt.hist(results['by_day']['num_rides'], bins=[0, 1, 2, 3, 4, 5], normed=True, alpha=0.4)
+	plt.hist(results['by_day']['num_rides'], bins=[0, 1, 2, 3, 4], align='mid', normed=True, alpha=0.4)
 
 	# distribution of rides by price
 	plt.figure()
 	plt.title('Rides by Price')
 	plt.xlabel('Price (dollars)')
 	plt.ylabel('Number of Rides')
-	plt.hist(results['by_record']['price'], alpha=0.4)
+	plt.hist(results['by_record']['price'], align='mid', alpha=0.4)
 	plt.savefig('./by_price.png')
 
 	# distribution of rides by day of week
-	plt.figure()
+	plt.figure(figsize=(8, 9))
 	plt.title('Rides by Day of Week')
 	days_of_week = map(int, results['by_day_of_week']['day_of_week'])
 	plt.bar(days_of_week, results['by_day_of_week']['num_rides'], align='center', alpha=0.4)
@@ -310,27 +306,22 @@ def plot_data(results):
 	# price as function of distance
 	x = results['by_record']['distance'] / 1600.0
 	y = results['by_record']['price']
-	fit = np.polyfit(x, y, 1)
-	fit_fn = np.poly1d(fit)
+	
+	# least squares regression
+	c = 6 # hardcoded intercept based on anecdotal evidence
+	x_fit = results['by_record'][(results['by_record']['distance'] / 1600.0 >= 1) & (results['by_record']['distance'] / 1600.0 <= 5)]['distance'] / 1600.0
+	y_fit = results['by_record'][(results['by_record']['distance'] / 1600.0 >= 1) & (results['by_record']['distance'] / 1600.0 <= 5)]['price'] - c
+	A = np.vstack([x_fit]).T
+	m = np.linalg.lstsq(A, y_fit)[0]
+
 	plt.figure()
 	plt.title('Price vs. Distance')
-	plt.plot(x, y, 'bo', x, fit_fn(x), '-k', alpha=0.4)
+	plt.plot(x, y, 'bo', x, x*m + c, '-k', alpha=0.4)
 	plt.xlabel('Distance (miles)')
 	plt.ylabel('Price (dollars)')
 	plt.xlim(0, 25)
+	plt.ylim(0,)
 	plt.savefig('./price_by_distance.png')
-
-	# dollars per mile by month
-	fig = plt.figure()
-	plt.title('Dollars per Mile by Month')
-	plt.xlabel('Month')
-	plt.ylabel('dollars per mile')
-	ax = fig.add_subplot(1, 1, 1)
-	ax.xaxis_date()
-	plt.plot([datetime.strptime(d, '%Y-%m') for d in results['by_month_filtered']['month']], 1600.0 * results['by_month_filtered']['dollars_per_meter'], alpha=0.4)
-	plt.xticks(rotation=50)
-	plt.ylim(0, 7)
-	plt.savefig('./dollars_per_mile_by_month.png')
 
 	return plt
 
